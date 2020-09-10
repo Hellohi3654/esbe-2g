@@ -47,8 +47,8 @@ float hash11(float p){
 }
 
 float random(float p){
-		p = p/3.0+TIME;
-		return lerp(hash11(floor(p)),hash11(floor(p+1.0)),smoothstep(0.0,1.0,frac(p)))*2.0;
+	p = p/3.0+TOTAL_REAL_WORLD_TIME;
+	return lerp(hash11(floor(p)),hash11(floor(p+1.0)),smoothstep(0.0,1.0,frac(p)))*2.0;
 }
 
 
@@ -63,7 +63,7 @@ PSInput.wf = 0.;
 #endif
 /////waves
 float3 p = float3(VSInput.position.x==16.?0.:VSInput.position.x,abs(VSInput.position.y-8.),VSInput.position.z==16.?0.:VSInput.position.z);
-float wav = sin(TIME*3.5+2.*p.x+2.*p.z+p.y);
+float wav = sin(TOTAL_REAL_WORLD_TIME*3.5+2.*p.x+2.*p.z+p.y);
 float rand = random(p.x+p.y+p.z);
 
 #ifdef AS_ENTITY_RENDERER
@@ -113,6 +113,16 @@ float cameraDepth = length(relPos);
 	len += RENDER_CHUNK_FOG_ALPHA.r;
 #endif
 	PSInput.fog = clamp((len - FOG_CONTROL.x) / (FOG_CONTROL.y - FOG_CONTROL.x), 0.0, 1.0);
+	if(FOG_CONTROL.x<.3)
+		if(.01<FOG_CONTROL.x)PSInput.position.xy += wav*PSInput.fog*.15
+			#ifdef FANCY
+				*(rand*.5+.5)
+			#endif
+			;else PSInput.position.x += wav*PSInput.fog*.1
+			#ifdef FANCY
+				*rand
+			#endif
+			;
 #endif
 
 ///// leaves
@@ -132,11 +142,5 @@ float cameraDepth = length(relPos);
 		float alphaFadeOut = clamp(cameraDist, 0.0, 1.0);
 		PSInput.color.a = lerp(VSInput.color.a*.6, 1.5, alphaFadeOut);
 	}
-	///// under water
-	if(FOG_CONTROL.x<.0001)PSInput.position.x += wav*.02*PROJ[0].x
-	#ifdef FANCY
-		*rand
-	#endif
-	;
 #endif
 }

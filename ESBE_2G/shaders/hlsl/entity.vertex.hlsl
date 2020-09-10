@@ -55,8 +55,8 @@ struct PS_Input {
 
 static const float AMBIENT = 0.45;
 
-static const float XFAC = -0.1;
-static const float ZFAC = 0.1;
+static const float XFAC = 0.1;
+static const float ZFAC = -0.1;
 
 
 float4 TransformRGBA8_SNORM(const float4 RGBA8_SNORM) {
@@ -86,11 +86,9 @@ float lightIntensity(const float4x4 worldMat, const float4 position, const float
 	float def = yLight * (1.0 - AMBIENT) + N.x*N.x * XFAC + N.z*N.z * ZFAC + AMBIENT;
 
 	//FLAT_SHADING
-	float dusk = smoothstep(0.8,0.6,TILE_LIGHT_COLOR.b);
-	float s = min(1.,dot(N,float3(0.,.8,.6))*.45+.64);
-	float esbe = lerp(s,max(dot(N,float3(.9,.44,0.)),dot(N,float3(-.9,.44,0.)))*1.3+.2,dusk);
+	float esbe = min(1.,dot(N,float3(0.,.8,.6))*.45+.64);
 
-	return lerp(def,esbe,smoothstep(0.5,0.75,TILE_LIGHT_COLOR.b));
+	return lerp(def,esbe,smoothstep(.6,.8,TILE_LIGHT_COLOR.b));
 #else
 	return .9;
 #endif
@@ -174,4 +172,9 @@ void main(in VS_Input VSInput, out PS_Input PSInput) {
 	//fog
 	PSInput.fogColor.rgb = FOG_COLOR.rgb;
 	PSInput.fogColor.a = clamp(((PSInput.position.z / RENDER_DISTANCE) - FOG_CONTROL.x) / (FOG_CONTROL.y - FOG_CONTROL.x), 0.0, 1.0);
+	#ifdef FANCY
+		float4 p = mul(VSInput.position,WORLD);
+		float wav = sin(TOTAL_REAL_WORLD_TIME*3.5+2.*p.x+2.*p.z+p.y)*PSInput.fogColor.a;
+		if(FOG_CONTROL.x<.3)if(.01<FOG_CONTROL.x)PSInput.position.xy+=wav*.15;else PSInput.position.x+=wav*.1;
+	#endif
 }

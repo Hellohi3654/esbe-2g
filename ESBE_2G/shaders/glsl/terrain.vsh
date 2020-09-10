@@ -34,6 +34,7 @@ varying float wf;
 #include "uniformWorldConstants.h"
 #include "uniformPerFrameConstants.h"
 #include "uniformRenderChunkConstants.h"
+uniform highp float TOTAL_REAL_WORLD_TIME;
 
 attribute POS4 POSITION;
 attribute vec4 COLOR;
@@ -52,7 +53,7 @@ highp float hash11(highp float p){
 }
 
 highp float random(highp float p){
-	p = p/3.0+TIME;
+	p = p/3.+TOTAL_REAL_WORLD_TIME;
 	return mix(hash11(floor(p)),hash11(ceil(p)),smoothstep(0.0,1.0,fract(p)))*2.0;
 }
 
@@ -66,9 +67,8 @@ POS4 worldPos;
 	color = COLOR;
 #endif
 /////waves
-highp float hTime = TIME;
 POS3 p = vec3(POSITION.x==16.?0.:POSITION.x,abs(POSITION.y-8.),POSITION.z==16.?0.:POSITION.z);
-float wav = sin(hTime*3.5+2.*p.x+2.*p.z+p.y);
+float wav = sin(TOTAL_REAL_WORLD_TIME*3.5+2.*p.x+2.*p.z+p.y);
 float rand = random(p.x+p.y+p.z);
 
 #ifdef AS_ENTITY_RENDERER
@@ -102,6 +102,16 @@ float cameraDepth = length(relPos);
 		len += RENDER_CHUNK_FOG_ALPHA;
 	#endif
 	fog = clamp((len - FOG_CONTROL.x) / (FOG_CONTROL.y - FOG_CONTROL.x), 0.0, 1.0);
+	if(FOG_CONTROL.x<.3)
+		if(.01<FOG_CONTROL.x)gl_Position.xy += wav*fog*.15
+			#ifdef FANCY
+				*(rand*.5+.5)
+			#endif
+			;else gl_Position.x += wav*fog*.1
+			#ifdef FANCY
+				*rand
+			#endif
+			;
 #endif
 
 ///// leaves
@@ -121,12 +131,6 @@ float cameraDepth = length(relPos);
 		float alphaFadeOut = clamp(cameraDist, 0.0, 1.0);
 		color.a = mix(color.a*.6, 1.5, alphaFadeOut);
 	}
-	///// under water
-	if(FOG_CONTROL.x<.0001)gl_Position.x += wav*.02*PROJ[0].x
-	#ifdef FANCY
-		*rand
-	#endif
-	;
 #endif
 
 #ifndef BYPASS_PIXEL_SHADER
